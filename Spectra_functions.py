@@ -16,7 +16,7 @@ font = {'family': 'serif',
 
 color = ['limegreen', 'darkgreen', 'mediumblue', 'indigo','mediumvioletred','green']
 
-def Spectra_generator(mass,channel,process='ann',galactic_profile=profile.NFW,nodes=300,bins=300,logscale=True,interactions=True):
+def Spectra_generator(mass,channel,process,galactic_profile=profile.NFW,nodes=300,bins=300,logscale=True,interactions=True):
     theta_12=33.82
     theta_13=8.6
     theta_23=48.6
@@ -47,7 +47,7 @@ def Spectra_generator(mass,channel,process='ann',galactic_profile=profile.NFW,no
     plt.legend()
     return Flux
     
-def Spectra_interpolation(mass, channel, E_true_center, process='ann'):
+def Spectra_interpolation(mass, channel, E_true_center, process):
     True_spectra_list = []
     nu_flavor = ['nu_e','nu_mu','nu_tau','nu_e_bar','nu_mu_bar','nu_tau_bar']
     Flux = Spectra_generator(mass=mass,channel=channel,process=process)
@@ -68,7 +68,7 @@ def Spectra_interpolation(mass, channel, E_true_center, process='ann'):
     plt.legend()
     return True_spectra_list
     
-def Flux_generator(mass, channel, process='ann', galactic_profile=profile.NFW, Ntheta=300):
+def Flux_generator(mass, channel, process, galactic_profile=profile.NFW, Ntheta=300):
     Flux = Spectra_generator(mass=mass, channel=channel)
     mass_range = Flux.iniE()
     Flux_osc = Flux.Halo('detector',zenith=np.deg2rad(-29.00781+90))
@@ -130,19 +130,58 @@ def J_interpolation(process, theta_true_center, galactic_profile=profile.NFW, Nt
     plt.legend()
     return True_J
    
-def Flux_interpolation(mass,channel,theta_true_center, E_true_center): 
+def Flux_interpolation(mass,channel,process,theta_true_center, E_true_center): 
     nu_flavor = ['nu_e','nu_mu','nu_tau','nu_e_bar','nu_mu_bar','nu_tau_bar']
     Transpose_flux, True_flux = [],[]
-    J_true = J_interpolation(process = 'ann', theta_true_center=theta_true_center)
-    True_spectra_list = Spectra_interpolation(mass=mass, channel=channel, E_true_center=E_true_center)
-    Flux = Spectra_generator(mass=mass,channel=channel)
+    J_true = J_interpolation(process=process, theta_true_center=theta_true_center)
+    True_spectra_list = Spectra_interpolation(mass=mass, channel=channel,process=process, E_true_center=E_true_center)
+    Flux = Spectra_generator(mass=mass,channel=channel,process=process)
     Flux_osc = Flux.Halo('detector',zenith=np.deg2rad(-29.00781+90))
     for i, nu_flavor in enumerate(nu_flavor):
         Transpose_flux.append(Flux_osc[nu_flavor][:,None])
         True_flux.append(Transpose_flux[i]*J_true)
     return True_flux
+
+def Signal_PDF(mass, channel, process):
+    resp_matrix_data = np.load('./Resp_MC1122_logE.pkl',allow_pickle=True, encoding="latin1")
+    Resp = resp_matrix_data['Resp']
+    True_energy_center = resp_matrix_data['Bin']['true_energy_center']
+    True_psi_center = resp_matrix_data['Bin']['true_psi_center']
+    Reco_energy_center = resp_matrix_data['Bin']['reco_energy_center']
+    Reco_psi_center = resp_matrix_data['Bin']['reco_psi_center']
     
-'''    
+    True_flux = Flux_interpolation(mass=mass,channel=channel,process=process, theta_true_center=True_psi_center, E_true_center=True_energy_center)
+    
+    grid = np.meshgrid(True_psi_center, True_energy_center, Reco_psi_center, Reco_energy_center, indexing='ij')
+    RecoRate = np.zeros((len(Reco_psi_center),len(Reco_energy_center)))
+
+    for i, nu_flavor in enumerate(Resp.keys()):
+        TotalWeight = np.sum(Resp[nu_flavor])
+        dRdlogE=Resp[nu_flavor]*grid[1]
+        RespPdf = dRdlogE/np.sum(dRdlogE)
+        RecoRate += np.tensordot(RespPdf*TotalWeight, True_flux, axes=([0,1], [1,0]))
+    return RecoRate 
+
+def psi_f(RA,decl):
+    return np.arccos(np.cos(np.pi/2.-(-29.0078*np.pi/180))*np.cos(np.pi/2.-decl)\
+                      +np.sin(np.pi/2.-(-29.0078*np.pi/180))*np.sin(np.pi/2.-decl)*\
+                       np.cos(RA-266.4168*np.pi/180))
+
+
+'''
+def Background_PDF(mass, channel, oversample=True):
+    data = np.load('Burnsample/OscNext_Level7_v02.00_burnsample_2020_pass2_variables_NoCut.pkl',allow_pickle=True, encoding="latin1")
+    burnsample = data['burnsample']
+    DEC_reco = burnsample['reco_Dec']
+    RA_reco = burnsample['reco_RA']
+    psi_reco = burnsample['reco_psi']
+    E_reco = burnsample['reco_TotalEnergy']
+    if oversample == True:
+        
+    else:
+        
+    
+  
 resp_matrix_data = np.load('/home/dvaldenaire/Python/Analysis/Resp_MC1122_logE.pkl',allow_pickle=True, encoding="latin1")
 True_energy_center = resp_matrix_data['Bin']['true_energy_center']
 True_psi_center = resp_matrix_data['Bin']['true_psi_center']
