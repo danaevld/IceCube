@@ -17,7 +17,7 @@ font = {'family': 'serif',
 
 color = ['limegreen', 'darkgreen', 'mediumblue', 'indigo','mediumvioletred','green']
 
-def Spectra_generator(mass,channel,process,galactic_profile=profile.NFW,nodes=300,bins=300,logscale=True,interactions=True):
+def Spectra_generator(mass,channel,process,nodes,galactic_profile=profile.NFW,bins=300,logscale=True,interactions=True):
     theta_12=33.82
     theta_13=8.6
     theta_23=48.6
@@ -50,9 +50,9 @@ def Spectra_generator(mass,channel,process,galactic_profile=profile.NFW,nodes=30
 def Spectra_interpolation(mass, channel, E_true_center, process, source, extrapolation):
     True_spectra_list = []
     nu_flavor = ['nu_e','nu_mu','nu_tau','nu_e_bar','nu_mu_bar','nu_tau_bar']
-    if osc = False: # no oscillations
-        if extrapolation = False: # no extrapolation
-            Flux = Spectra_generator(mass=mass,channel=channel,process=process)
+    if osc == False: # no oscillations
+        if extrapolation == False: # no extrapolation
+            Flux = Spectra_generator(mass=mass,channel=channel,process=process, nodes=300)
             mass_range = Flux.iniE()
             Flux_ini_Halo = Flux.iniFlux('Halo')
             plt.figure(figsize = (6,4))
@@ -70,7 +70,7 @@ def Spectra_interpolation(mass, channel, E_true_center, process, source, extrapo
             plt.legend()
             return True_spectra_list
         else: # no oscillation + extrapolation
-            Flux = Spectra_generator(mass=mass,channel=channel,process=process)
+            Flux = Spectra_generator(mass=mass,channel=channel,process=process, nodes=300)
             mass_range = Flux.iniE()
             Flux_ini_Halo = Spectra_extrapolate(mass=mass, channel=channel, process=process, source=source)
             plt.figure(figsize = (6,4))
@@ -88,9 +88,9 @@ def Spectra_interpolation(mass, channel, E_true_center, process, source, extrapo
             plt.legend()
             return True_spectra_list
     else: # oscillations
-        if extrapolation = False:
+        if extrapolation == False:
             # osc but no extrapolation
-            Flux = Spectra_generator(mass=mass,channel=channel,process=process)
+            Flux = Spectra_generator(mass=mass,channel=channel,process=process, nodes=300)
             mass_range = Flux.iniE()
             Flux_osc = Flux.Halo('detector',zenith=np.deg2rad(-29.00781+90))
             plt.figure(figsize = (6,4))
@@ -108,7 +108,7 @@ def Spectra_interpolation(mass, channel, E_true_center, process, source, extrapo
             plt.legend()
             return True_spectra_list
         else: # osc and extrapolation
-            Flux = Spectra_generator(mass=mass,channel=channel,process=process)
+            Flux = Spectra_generator(mass=mass,channel=channel,process=process, nodes=300)
             mass_range = Flux.iniE()
             Flux_osc = Spectra_extrapolate(mass=mass, channel=channel, process=process, source=source)
             plt.figure(figsize = (6,4))
@@ -127,7 +127,7 @@ def Spectra_interpolation(mass, channel, E_true_center, process, source, extrapo
             return True_spectra_list
         
 def Flux_generator(mass, channel, process, galactic_profile=profile.NFW, Ntheta=300):
-    Flux = Spectra_generator(mass=mass, channel=channel)
+    Flux = Spectra_generator(mass=mass, channel=channel, process=process, nodes=300)
     mass_range = Flux.iniE()
     Flux_osc = Flux.Halo('detector',zenith=np.deg2rad(-29.00781+90))
     nu_flavor = ['nu_e','nu_mu','nu_tau','nu_e_bar','nu_mu_bar','nu_tau_bar']
@@ -163,7 +163,7 @@ def Flux_generator(mass, channel, process, galactic_profile=profile.NFW, Ntheta=
         plt.ylabel(r"$d\phi_\nu/dE\;[GeV^{-1}]$")
         plt.legend()
 
-def J_interpolation(process, theta_true_center, galactic_profile=profile.NFW, Ntheta = 300):
+def J_interpolation(process, theta_true_center, galactic_profile=profile.NFW, Ntheta = 100):
     nu_flavor = ['nu_e','nu_mu','nu_tau','nu_e_bar','nu_mu_bar','nu_tau_bar']
     R       = 100.  
     d       = 8     
@@ -172,6 +172,7 @@ def J_interpolation(process, theta_true_center, galactic_profile=profile.NFW, Nt
     Jtheta = [J.Jtheta(j) for j in opening_angle] # (rad)
     J_interp = splrep(np.rad2deg(opening_angle), Jtheta)
     True_J = splev(theta_true_center, J_interp, der = 0) # (deg)
+    '''
     plt.subplot(211)
     plt.plot(np.rad2deg(opening_angle), Jtheta, 'g-+', label = 'J profile')
     plt.xlim(0.,180) 
@@ -186,38 +187,44 @@ def J_interpolation(process, theta_true_center, galactic_profile=profile.NFW, Nt
     plt.xlabel(r'$\theta [^\circ]$')
     plt.ylabel(r'$J(\theta)\;[\mathrm{GeV^2/cm^5}]$')
     plt.legend()
+    '''
+    print('len true J', len(True_J))
     return True_J
    
-def Flux_interpolation(mass,channel,process,theta_true_center, E_true_center, source, extrapolation): 
+def Flux_interpolation(mass,channel,process,theta_true_center, E_true_center, extrapolation, source=False): 
     nu_flavor = ['nu_e','nu_mu','nu_tau','nu_e_bar','nu_mu_bar','nu_tau_bar']
     Transpose_flux, True_flux = [],[]
     J_true = J_interpolation(process=process, theta_true_center=theta_true_center)
-    True_spectra_list = Spectra_interpolation(mass=mass, channel=channel,process=process, E_true_center=E_true_center, source=source, extrapolation=extrapolation)
-    Flux = Spectra_generator(mass=mass,channel=channel,process=process)
-    Flux_osc = Flux.Halo('detector',zenith=np.deg2rad(-29.00781+90))
-    for i, nu_flavor in enumerate(nu_flavor):
-        Transpose_flux.append(Flux_osc[nu_flavor][:,None])
-        True_flux.append(Transpose_flux[i]*J_true)
-    return True_flux
-
-def Signal_PDF(mass, channel, process):
-    resp_matrix_data = np.load('./Resp_MC1122_logE.pkl',allow_pickle=True, encoding="latin1")
+    Flux = Spectra_generator(mass=mass,channel=channel,process=process, nodes=len(J_true))
+    if extrapolation == False:
+        Flux_osc = Flux.Halo('detector',zenith=np.deg2rad(-29.00781+90))
+        for i, nu_flavor in enumerate(nu_flavor):
+            Transpose_flux.append(Flux_osc[nu_flavor][:,None])
+            True_flux.append(Transpose_flux[i]*J_true)
+        return True_flux
+    else:
+        Flux_osc = Spectra_extrapolate(mass=mass, channel=channel, process=process, source=source)
+        for k in range(len(Flux_osc)):
+            Flux_osc = np.array(Flux_osc)
+            Transpose_flux.append(Flux_osc[k][:,None])
+            True_flux.append(Transpose_flux[k]*J_true)
+        return True_flux
+    
+def Signal_PDF(mass, channel, process, extrapolation):
+    resp_matrix_data = np.load('/home/dvaldenaire/Python/Analysis/Response matrix/Resp_MC1122_logE.pkl',allow_pickle=True, encoding="latin1")
     Resp = resp_matrix_data['Resp']
     True_energy_center = resp_matrix_data['Bin']['true_energy_center']
     True_psi_center = resp_matrix_data['Bin']['true_psi_center']
     Reco_energy_center = resp_matrix_data['Bin']['reco_energy_center']
     Reco_psi_center = resp_matrix_data['Bin']['reco_psi_center']
-    
-    True_flux = Flux_interpolation(mass=mass,channel=channel,process=process, theta_true_center=True_psi_center, E_true_center=True_energy_center)
-    
+    True_flux = Flux_interpolation(mass=mass,channel=channel,process=process, theta_true_center=True_psi_center, E_true_center=True_energy_center,extrapolation=extrapolation)
     grid = np.meshgrid(True_psi_center, True_energy_center, Reco_psi_center, Reco_energy_center, indexing='ij')
     RecoRate = np.zeros((len(Reco_psi_center),len(Reco_energy_center)))
-
     for i, nu_flavor in enumerate(Resp.keys()):
         TotalWeight = np.sum(Resp[nu_flavor])
         dRdlogE=Resp[nu_flavor]*grid[1]
         RespPdf = dRdlogE/np.sum(dRdlogE)
-        RecoRate += np.tensordot(RespPdf*TotalWeight, True_flux, axes=([0,1], [1,0]))
+        RecoRate += np.tensordot(RespPdf*TotalWeight, True_flux[i], axes=([0,1], [1,0]))
     return RecoRate 
 
 def psi_f(RA,decl):
@@ -225,10 +232,10 @@ def psi_f(RA,decl):
                       +np.sin(np.pi/2.-(-29.0078*np.pi/180))*np.sin(np.pi/2.-decl)*\
                        np.cos(RA-266.4168*np.pi/180))
 
-def Spectra_extrapolate(mass, channel, process, kind = 'cubic', source=True):
+def Spectra_extrapolate(mass, channel, process, source, kind = 'cubic'):
     flux_extrapol = []
     nu_flavor = ['nu_e','nu_mu','nu_tau','nu_e_bar','nu_mu_bar','nu_tau_bar']
-    Flux = Spectra_generator(mass = mass, channel = channel, process=process)
+    Flux = Spectra_generator(mass = mass, channel = channel, process=process, nodes=300)
     mass_range = Flux.iniE()
     if source == True:
         Flux_Halo = Flux.iniFlux('Halo')
@@ -237,7 +244,7 @@ def Spectra_extrapolate(mass, channel, process, kind = 'cubic', source=True):
             for k in range(0,len(Flux_Halo[i])-1):
                 if round(Flux_Halo[i][k+1],2) == round(Flux_Halo[i][k],2):
                     index = index + 1
-            if process == 'ann':
+            if process == 'ann': #source + ann 
                 flux_cut = Flux_Halo[i][index:]
                 mass_range_cut = mass_range[index:]
                 func = interp1d(mass_range_cut, flux_cut,
@@ -246,17 +253,18 @@ def Spectra_extrapolate(mass, channel, process, kind = 'cubic', source=True):
                 fill_value='extrapolate')
                 newflux_halo = [func(i)/mass for i in mass_range]
                 flux_extrapol.append(newflux_halo)
-                plt.figure(figsize = (6,4))
-                plt.title(r'Energy spectra at source | channel : {0} | $m_X = {1}$PeV'.format(channel,int(mass/1e6)), fontdict = font)
-                plt.yscale('log')
-                plt.semilogx()
-                plt.grid()
-                plt.xlabel(r"$E$ [GeV]", fontdict = font)
-                plt.ylabel(r"$dN_\nu/dE_\nu\;[GeV^{-1}]$", fontdict = font)
-                for j in range(len(flux_extrapol)):
-                    plt.plot(mass_range, flux_extrapol[j],color=color[j],label=nu_flavor[j])
-                plt.legend()
-            else:
+                if i=='nu_tau_bar':
+                    plt.figure(figsize = (6,4))
+                    plt.title(r'Energy spectra at source | channel : {0} | $m_X = {1}$PeV'.format(channel,int(mass/1e6)), fontdict = font)
+                    plt.yscale('log')
+                    plt.semilogx()
+                    plt.grid()
+                    plt.xlabel(r"$E$ [GeV]", fontdict = font)
+                    plt.ylabel(r"$dN_\nu/dE_\nu\;[GeV^{-1}]$", fontdict = font)
+                    for j in range(len(flux_extrapol)):
+                        plt.plot(mass_range, flux_extrapol[j],color=color[j], label=nu_flavor[j])
+                    plt.legend()
+            else: # source + decay
                 flux_cut = Flux_Halo[i][index:200]
                 mass_range_cut = mass_range[index:200]
                 func = interp1d(mass_range_cut, flux_cut,
@@ -267,25 +275,27 @@ def Spectra_extrapolate(mass, channel, process, kind = 'cubic', source=True):
                 Flux_halo_tail = np.array(Flux_Halo[i][index:]/mass)
                 newflux = np.concatenate((newflux_halo, Flux_halo_tail), axis = None)
                 flux_extrapol.append(newflux)
-                plt.figure(figsize = (6,4))
-                plt.title(r'Energy spectra at source | channel : {0} | $m_X = {1}$PeV'.format(channel,int(mass/1e6)), fontdict = font)
-                plt.yscale('log')
-                plt.semilogx()
-                plt.grid()
-                plt.xlabel(r"$E$ [GeV]", fontdict = font)
-                plt.ylabel(r"$dN_\nu/dE_\nu\;[GeV^{-1}]$", fontdict = font)
-                for j in range(len(flux_extrapol)):
-                    plt.plot(mass_range, flux_extrapol[j],color=color[j],label=nu_flavor[j])
-                plt.legend()
+                if i=='nu_tau_bar':
+                    plt.figure(figsize = (6,4))
+                    plt.title(r'Energy spectra at source | channel : {0} | $m_X = {1}$PeV'.format(channel,int(mass/1e6)), fontdict = font)
+                    plt.yscale('log')
+                    plt.semilogx()
+                    plt.grid()
+                    plt.xlabel(r"$E$ [GeV]", fontdict = font)
+                    plt.ylabel(r"$dN_\nu/dE_\nu\;[GeV^{-1}]$", fontdict = font)
+                    for j in range(len(flux_extrapol)):
+                        plt.plot(mass_range, flux_extrapol[j],color=color[j], label=nu_flavor[j])
+                    plt.legend()
+                
         return flux_extrapol
-    else:   
+    else: 
         Flux_osc = Flux.Halo('detector',zenith=np.deg2rad(-29.00781+90))
         for i in nu_flavor:
             index = 0
             for k in range(0,len(Flux_osc[i])-1):
                 if round(Flux_osc[i][k+1],2) == round(Flux_osc[i][k],2):
                     index = index + 1
-            if process == 'ann':
+            if process == 'ann': #earth + ann
                 flux_cut = Flux_osc[i][index:]
                 mass_range_cut = mass_range[index:]
                 func = interp1d(mass_range_cut, flux_cut,
@@ -294,17 +304,18 @@ def Spectra_extrapolate(mass, channel, process, kind = 'cubic', source=True):
                 fill_value='extrapolate')
                 newflux_osc = [func(i)/mass for i in mass_range]
                 flux_extrapol.append(newflux_osc)
-                plt.figure(figsize = (6,4))
-                plt.title(r'Energy spectra at Earth | channel : {0} | $m_X = {1}$PeV'.format(channel,int(mass/1e6)), fontdict = font)
-                plt.yscale('log')
-                plt.semilogx()
-                plt.grid()
-                plt.xlabel(r"$E$ [GeV]", fontdict = font)
-                plt.ylabel(r"$dN_\nu/dE_\nu\;[GeV^{-1}]$", fontdict = font)
-                for j in range(len(flux_extrapol)):
-                    plt.plot(mass_range, flux_extrapol[j],color=color[j], label=nu_flavor[j])
-                plt.legend()
-            else:
+                if i=='nu_tau_bar':
+                    plt.figure(figsize = (6,4))
+                    plt.title(r'Energy spectra at Earth | channel : {0} | $m_X = {1}$PeV'.format(channel,int(mass/1e6)), fontdict = font)
+                    plt.yscale('log')
+                    plt.semilogx()
+                    plt.grid()
+                    plt.xlabel(r"$E$ [GeV]", fontdict = font)
+                    plt.ylabel(r"$dN_\nu/dE_\nu\;[GeV^{-1}]$", fontdict = font)
+                    for j in range(len(flux_extrapol)):
+                        plt.plot(mass_range, flux_extrapol[j],color=color[j], label=nu_flavor[j])
+                    plt.legend()
+            else: #earth +decay
                 flux_cut = Flux_osc[i][index:200]
                 mass_range_cut = mass_range[index:200]
                 func = interp1d(mass_range_cut, flux_cut,
@@ -315,15 +326,17 @@ def Spectra_extrapolate(mass, channel, process, kind = 'cubic', source=True):
                 Flux_osc_tail = np.array(Flux_osc[i][index:]/mass)
                 newflux = np.concatenate((newflux_osc, Flux_osc_tail), axis = None)
                 flux_extrapol.append(newflux)
-                plt.figure(figsize = (6,4))
-                plt.title(r'Energy spectra at Earth | channel : {0} | $m_X = {1}$PeV'.format(channel,int(mass/1e6)), fontdict = font)
-                plt.yscale('log')
-                plt.semilogx()
-                plt.grid()
-                plt.xlabel(r"$E$ [GeV]", fontdict = font)
-                plt.ylabel(r"$dN_\nu/dE_\nu\;[GeV^{-1}]$", fontdict = font)
-                for j in range(len(flux_extrapol)):
-                    plt.plot(mass_range, flux_extrapol[j],color=color[j], label=nu_flavor[j])
-                plt.legend()
+                if i=='nu_tau_bar':
+                    plt.figure(figsize = (6,4))
+                    plt.title(r'Energy spectra at Earth | channel : {0} | $m_X = {1}$PeV'.format(channel,int(mass/1e6)), fontdict = font)
+                    plt.yscale('log')
+                    plt.semilogx()
+                    plt.grid()
+                    plt.xlabel(r"$E$ [GeV]", fontdict = font)
+                    plt.ylabel(r"$dN_\nu/dE_\nu\;[GeV^{-1}]$", fontdict = font)
+                    for j in range(len(flux_extrapol)):
+                        plt.plot(mass_range, flux_extrapol[j],color=color[j], label=nu_flavor[j])
+                    plt.legend()
         return flux_extrapol
 
+        
