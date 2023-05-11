@@ -59,90 +59,59 @@ def Spectra_interpolation(mass, channel, process, source, extrapolation, galacti
             Flux = Spectra_generator(mass=mass,channel=channel,process=process, nodes=300)
             mass_range = Flux.iniE()
             Flux_ini_Halo = Flux.iniFlux('Halo')
-            plt.figure(figsize = (6,4))
             for i, nu_flavor in enumerate(nu_flavor):
                 if process == 'decay':
                     Spectra_interp = splrep(mass_range, 2*Flux_ini_Halo[nu_flavor]/mass)
                 else:
                     Spectra_interp = splrep(mass_range, Flux_ini_Halo[nu_flavor]/mass)
                 True_spectra = splev(E_true_center, Spectra_interp, der = 0)
-                plt.plot(E_true_center, True_spectra, label = nu_flavor, color=color[i])
                 True_spectra_list.append(True_spectra)
-            plt.title('Spectra interpolate at values of E true center | channel = {0}'.format(channel))
-            plt.yscale('log')
-            plt.semilogx()
-            plt.grid()
-            plt.xlabel("$E [GeV]$", fontdict = font)
-            plt.ylabel(r"$dN_\nu/dE_\nu\;[GeV^{-1}]$", fontdict = font)
-            plt.legend()
             return True_spectra_list
+
         else: # no oscillation + extrapolation
             Flux = Spectra_generator(mass=mass,channel=channel,process=process, nodes=300)
             mass_range = Flux.iniE()
             Flux_ini_Halo = Spectra_extrapolate(mass=mass, channel=channel, process=process, source=source)
-            plt.figure(figsize = (6,4))
+            
             for i, nu_flavor in enumerate(nu_flavor):
                 if process == 'decay':
                     Spectra_interp = splrep(mass_range, Flux_ini_Halo[i])
                 else:
                     Spectra_interp = splrep(mass_range, Flux_ini_Halo[i])
                 True_spectra = splev(E_true_center, Spectra_interp, der = 0)
-                plt.plot(E_true_center, True_spectra, label = nu_flavor, color=color[i])
                 True_spectra_list.append(True_spectra)
-            plt.title('Spectra interpolate at values of E true center | channel = {0}'.format(channel))
-            plt.yscale('log')
-            plt.semilogx()
-            plt.grid()
-            plt.xlabel("$E [GeV]$", fontdict = font)
-            plt.ylabel(r"$dN_\nu/dE_\nu\;[GeV^{-1}]$", fontdict = font)
-            plt.legend()
             return True_spectra_list
+            
     else: # oscillations
         if extrapolation == False:
             # osc but no extrapolation
             Flux = Spectra_generator(mass=mass,channel=channel,process=process, nodes=300)
             mass_range = Flux.iniE()
             Flux_osc = Flux.Halo('detector',zenith=np.deg2rad(-29.00781+90))
-            plt.figure(figsize = (6,4))
+            
             for i, nu_flavor in enumerate(nu_flavor):
                 if process == 'decay':
                     Spectra_interp = splrep(mass_range, (2*Flux_osc[nu_flavor])/mass)
                 else:
                     Spectra_interp = splrep(mass_range, Flux_osc[nu_flavor]/mass)
                 True_spectra = splev(E_true_center, Spectra_interp, der = 0)
-                plt.plot(E_true_center, True_spectra, label = nu_flavor, color=color[i])
                 True_spectra_list.append(True_spectra)
-            plt.title('Spectra interpolate at values of E true center | channel = {0}'.format(channel))
-            plt.yscale('log')
-            plt.semilogx()
-            plt.grid()
-            plt.xlabel("$E [GeV]$", fontdict = font)
-            plt.ylabel(r"$dN_\nu/dE_\nu\;[GeV^{-1}]$", fontdict = font)
-            plt.legend()
             return True_spectra_list
+            
         else: # osc and extrapolation
             Flux = Spectra_generator(mass=mass,channel=channel,process=process, nodes=300)
             mass_range = Flux.iniE()
             Flux_osc = Spectra_extrapolate(mass=mass, channel=channel, process=process, source=source)
-            plt.figure(figsize = (6,4))
             for i, nu_flavor in enumerate(nu_flavor):
                 if process == 'decay':
                     Spectra_interp = splrep(mass_range, Flux_osc[i])
                 else:
                     Spectra_interp = splrep(mass_range, Flux_osc[i])
                 True_spectra = splev(E_true_center, Spectra_interp, der = 0)
-                plt.plot(E_true_center, True_spectra, label = nu_flavor, color=color[i])
                 True_spectra_list.append(True_spectra)
-            plt.title('Spectra interpolate at values of E true center | channel = {0}'.format(channel))
-            plt.yscale('log')
-            plt.semilogx()
-            plt.grid()
-            plt.xlabel("$E [GeV]$", fontdict = font)
-            plt.ylabel(r"$dN_\nu/dE_\nu\;[GeV^{-1}]$", fontdict = font)
-            plt.legend()
             return True_spectra_list
         
-def Flux_generator(mass, channel, process, galactic_profile, extrapolation, Ntheta, Clumpy = True, Plot = True):
+def Flux_generator(mass, channel, process, galactic_profile, extrapolation, Ntheta=100, Clumpy = True, Plot = True):
     if extrapolation == False:
         Flux = Spectra_generator(mass=mass, channel=channel, process=process, nodes=300)
         Flux_osc = Flux.Halo('detector',zenith=np.deg2rad(-29.00781+90))
@@ -154,14 +123,14 @@ def Flux_generator(mass, channel, process, galactic_profile, extrapolation, Nthe
     nu_flavor = ['nu_e','nu_mu','nu_tau','nu_e_bar','nu_mu_bar','nu_tau_bar'] 
     if Clumpy == True and process == 'decay': #Clumpy + decay
         if galactic_profile == profile.NFW: #Clumpy + decay + NFW
-            theta, Jtheta = ClumpyReader('Clumpy_Jfactor/Dfactor_dDdOmega_GeV_cm2_sr_NFW_NestiSalucci.output', header_index = 10)
+            theta, Jtheta = ClumpyReader('Clumpy_Jfactor/Dfactor_dDdOmega_GeV_cm2_sr_NFW_NestiSalucci.output', header_index = 9)
         else:
-            theta, Jtheta = ClumpyReader('Clumpy_Jfactor/Dfactor_dDdOmega_GeV_cm2_sr_Burkert_NestiSalucci.output', header_index = 10) #Clumpy + decay + Burkert
+            theta, Jtheta = ClumpyReader('Clumpy_Jfactor/Dfactor_dDdOmega_GeV_cm2_sr_Burkert_NestiSalucci.output', header_index = 9) #Clumpy + decay + Burkert
     elif Clumpy == True and process == 'ann':
         if galactic_profile == profile.Burkert: #Clumpy + ann + Burkert
-            theta, Jtheta = ClumpyReader('Clumpy_Jfactor/Jfactor_dJdOmega_GeV2_cm5_sr_Burkert_NestiSalucci.output', header_index=3)
+            theta, Jtheta = ClumpyReader('Clumpy_Jfactor/Jfactor_dJdOmega_GeV2_cm5_sr_Burkert_NestiSalucci.output', header_index=2)
         else:
-            theta, Jtheta = ClumpyReader('Clumpy_Jfactor/Jfactor_dJdOmega_GeV2_cm5_sr_NFW_NestiSalucci.output', header_index=3) #Clumpy + ann + NFW
+            theta, Jtheta = ClumpyReader('Clumpy_Jfactor/Jfactor_dJdOmega_GeV2_cm5_sr_NFW_NestiSalucci.output', header_index=2) #Clumpy + ann + NFW
     else: # Charon Jprofile
         R       = 100.  
         d       = 8    
@@ -182,7 +151,8 @@ def Flux_generator(mass, channel, process, galactic_profile, extrapolation, Nthe
             Flux_list.append(Transpose_flux[k]*Jtheta)
     if Plot == True:
         for j, nu_flav in enumerate(nu_flavor):
-            plt.figure(figsize = (7,10))
+            plt.figure(figsize = (5,8))
+            plt.subplots_adjust(hspace = 0.35)
             plt.title(r'Neutrinos flux for $m_X$ = {0}PeV | channel = {1}'.format(int(mass/1e6),channel))
             plt.subplot(211)
             plt.title(r'Neutrinos flux function of opening angle | channel = {0} | $m_X = {1}$PeV'.format(channel,int(mass/1e6)), fontdict = font)
@@ -203,10 +173,6 @@ def Flux_generator(mass, channel, process, galactic_profile, extrapolation, Nthe
             plt.xlabel("$E [GeV]$", fontdict = font)
             plt.ylabel(r"$d\phi_\nu/dE\;[GeV^{-1}]$", fontdict=font)
             plt.legend()
-            
-            theta_edges = np.histogram_bin_edges(theta,bins=len(theta))
-            mass_range_edges = np.histogram_bin_edges(mass_range,bins=len(mass_range))
-            plot_projections(Flux_list[j],(theta_edges,mass_range_edges),'Theta [rad]','E [GeV]','Titre')
 
     return Flux_list
 
@@ -216,25 +182,26 @@ def J_interpolation(process, galactic_profile, Clumpy=True, Ntheta=100):
     nu_flavor = ['nu_e','nu_mu','nu_tau','nu_e_bar','nu_mu_bar','nu_tau_bar']
     if Clumpy == True and process == 'decay': #Clumpy + decay
         if galactic_profile == profile.NFW: #Clumpy + decay + NFW
-            opening_angle, Jtheta = ClumpyReader('Clumpy_Jfactor/Dfactor_dDdOmega_GeV_cm2_sr_NFW_NestiSalucci.output', header_index = 10)
-        else:
-            opening_angle, Jtheta = ClumpyReader('Clumpy_Jfactor/Dfactor_dDdOmega_GeV_cm2_sr_Burkert_NestiSalucci.output', header_index = 10) #Clumpy + decay + Burkert
+            opening_angle, Jtheta = ClumpyReader('Clumpy_Jfactor/Dfactor_dDdOmega_GeV_cm2_sr_NFW_NestiSalucci.output', header_index = 9)
+        else:  
+            opening_angle, Jtheta = ClumpyReader('Clumpy_Jfactor/Dfactor_dDdOmega_GeV_cm2_sr_Burkert_NestiSalucci.output', header_index = 9) #Clumpy + decay + Burkert
     elif Clumpy == True and process == 'ann':
         if galactic_profile == profile.Burkert: #Clumpy + ann + Burkert
-            opening_angle, Jtheta = ClumpyReader('Clumpy_Jfactor/Jfactor_dJdOmega_GeV2_cm5_sr_Burkert_NestiSalucci.output', header_index=3)
+            opening_angle, Jtheta = ClumpyReader('Clumpy_Jfactor/Jfactor_dJdOmega_GeV2_cm5_sr_Burkert_NestiSalucci.output', header_index=2)
         else:
-            opening_angle, Jtheta = ClumpyReader('Clumpy_Jfactor/Jfactor_dJdOmega_GeV2_cm5_sr_NFW_NestiSalucci.output', header_index=3) #Clumpy + ann + NFW
+            opening_angle, Jtheta = ClumpyReader('Clumpy_Jfactor/Jfactor_dJdOmega_GeV2_cm5_sr_NFW_NestiSalucci.output', header_index=2) #Clumpy + ann + NFW
     else:
         R       = 100.  
         d       = 8     
         opening_angle = np.linspace(0.,np.pi,Ntheta)
         J      = profile.J(galactic_profile,R,d,process)
-        Jtheta = [J.Jtheta(j) for j in opening_angle] # (rad)
-    J_interp = splrep(np.rad2deg(opening_angle), Jtheta)
+        Jtheta = [J.Jtheta(j) for j in opening_angle]
+        opening_angle = np.rad2deg(opening_angle)# (rad)
+    J_interp = splrep(opening_angle, Jtheta)
     True_J = splev(theta_true_center, J_interp, der = 0) # (deg)
     return True_J
    
-def Flux_interpolation(mass,channel,process,extrapolation,galactic_profile,source=False):
+def Flux_interpolation(mass,channel,process,galactic_profile,extrapolation,source=False):
     resp_matrix_data = np.load('Response matrix/Resp_MC1122_logE.pkl',allow_pickle=True, encoding="latin1")
     theta_true_center=resp_matrix_data['Bin']['true_psi_center']
     nu_flavor = ['nu_e','nu_mu','nu_tau','nu_e_bar','nu_mu_bar','nu_tau_bar']
@@ -243,10 +210,7 @@ def Flux_interpolation(mass,channel,process,extrapolation,galactic_profile,sourc
     Flux_osc = Spectra_interpolation(mass=mass,channel=channel,process=process, source=source, extrapolation=extrapolation,galactic_profile=galactic_profile) #normalized by the mass
     if extrapolation == False:
         for i, nu_flavor in enumerate(nu_flavor):
-            if process == 'decay':
-                Transpose_flux.append(Flux_osc[i][:,None])
-            else:  
-                Transpose_flux.append(Flux_osc[i][:,None])
+            Transpose_flux.append(Flux_osc[i][:,None]) # ORDER CHANGED
             True_flux.append(Transpose_flux[i]*J_true)
         return True_flux
     else:
@@ -265,7 +229,7 @@ def Signal_PDF(mass, channel, process, extrapolation, galactic_profile, normaliz
     Reco_psi_center = resp_matrix_data['Bin']['reco_psi_center']
     True_flux = Flux_interpolation(mass=mass,channel=channel,process=process,extrapolation=extrapolation,galactic_profile=galactic_profile)
     grid = np.meshgrid(True_psi_center, True_energy_center, Reco_psi_center, Reco_energy_center, indexing='ij')
-    RecoRate = np.empty((len(Reco_psi_center),len(Reco_energy_center)))
+    RecoRate = np.ones((len(Reco_psi_center),len(Reco_energy_center)))
     for i, nu_flavor in enumerate(Resp.keys()):
         TotalWeight = np.sum(Resp[nu_flavor])
         dRdlogE=Resp[nu_flavor]*grid[1]
@@ -273,14 +237,10 @@ def Signal_PDF(mass, channel, process, extrapolation, galactic_profile, normaliz
         RecoRate += np.tensordot(RespPdf*TotalWeight, True_flux[i], axes=([0,1], [1,0]))
     if normalize == True:
         RecoRate = RecoRate/np.sum(RecoRate)
-    return RecoRate 
-
-def Background_cut():
-    data = np.load('Burnsample/Bkg.pkl',allow_pickle=True, encoding="latin1")
-    return data
+    return RecoRate
 
 def Background_PDF(oversample, hist, bins, density):
-    data = np.load('Burnsample/Bkg.pkl',allow_pickle=True, encoding="latin1")
+    data = np.load('Burnsample/OscNext_Level7_v02.00_burnsample_2020_pass2_variables_NoCut.pkl',allow_pickle=True, encoding="latin1")
     burnsample = data['burnsample']
     DEC_reco = burnsample['reco_Dec']
     RA_reco = burnsample['reco_RA']
