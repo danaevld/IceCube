@@ -23,15 +23,13 @@ def Signal_injection(mass, channel, process, galactic_profile):
     Background = Background_cut()
     
     
-    
-    
 def Sensitivity(mass_range,channel,process,galactic_profile, CL=90,exposure=2933.8*24*60*60):
-    Sensitivity = []
+    Sensitivity, SignalFraction = [],[]
     Background = Background_cut()
     SumBackground = np.sum(Background)
     for mass in mass_range:
         # PARAMETERS:
-        if mass == 6:
+        if mass == 1e6:
             extrapolation = False
         else:
             extrapolation = True
@@ -58,6 +56,7 @@ def Sensitivity(mass_range,channel,process,galactic_profile, CL=90,exposure=2933
         xi_CL = lr.upperlimit_llhinterval('H1', 'H0', CL)
         print('Signal fraction Ns/Ntot:', xi_CL)
         Nsignal = xi_CL*SumBackground
+        SignalFraction.append([xi_CL, Nsignal])
         print('\n Nb signal:', round(Nsignal))
         # Convert to thermal cross-section:
         if process == 'decay':
@@ -65,5 +64,5 @@ def Sensitivity(mass_range,channel,process,galactic_profile, CL=90,exposure=2933
         else:
             K = 8*np.pi*mass**2
         Sensitivity.append(Nsignal/np.sum((1/K)*RecoRate*exposure))
-    return(Sensitivity)
+    return(SignalFraction, Sensitivity)
         
